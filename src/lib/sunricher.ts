@@ -798,10 +798,13 @@ const extend = {
                     const awayOrBoostMode = await getAwayOrBoostMode(entity);
 
                     let convertedValue: number;
+                    const step = utils.getExposeValueStep(meta.mapped, meta.device, "current_heating_setpoint");
+                    const celsiusStep = step ?? 0.5;
                     if (meta.options.thermostat_unit === "fahrenheit") {
-                        convertedValue = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value) * 100);
+                        const fahrenheitStep = step !== undefined ? step * 1.8 : undefined;
+                        convertedValue = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value, fahrenheitStep) * 100);
                     } else {
-                        convertedValue = Number((Math.round(Number((value * 2).toFixed(1))) / 2).toFixed(1)) * 100;
+                        convertedValue = Math.round(utils.roundToStep(value, celsiusStep) * 100);
                     }
 
                     if (awayOrBoostMode === 1) {

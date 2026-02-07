@@ -42,6 +42,27 @@ export function precisionRound(number: number, precision: number): number {
     return number;
 }
 
+function getStepPrecision(step: number): number {
+    if (!Number.isFinite(step)) {
+        return 0;
+    }
+    const stepString = step.toString();
+    const decimalIndex = stepString.indexOf(".");
+    if (decimalIndex === -1) {
+        return 0;
+    }
+    return stepString.length - decimalIndex - 1;
+}
+
+export function roundToStep(value: number, step: number): number {
+    if (!Number.isFinite(step) || step <= 0) {
+        return value;
+    }
+    const precision = getStepPrecision(step);
+    const rounded = Math.round(value / step) * step;
+    return Number(rounded.toFixed(precision));
+}
+
 export function toLocalISOString(dDate: Date) {
     const tzOffset = -dDate.getTimezoneOffset();
     const plusOrMinus = tzOffset >= 0 ? "+" : "-";
@@ -487,6 +508,47 @@ export function getMetaValues(definitions: Definition | Definition[], entity: Zh
     return result;
 }
 
+function findExposeValueStep(exposes: Expose[], property: string): number | undefined {
+    for (const expose of exposes) {
+        const step = getExposeValueStepFromExpose(expose, property);
+        if (step !== undefined) {
+            return step;
+        }
+    }
+    return undefined;
+}
+
+function getExposeValueStepFromExpose(expose: Expose, property: string): number | undefined {
+    if ("property" in expose && expose.property === property && "value_step" in expose && typeof expose.value_step === "number") {
+        return expose.value_step;
+    }
+    if ("features" in expose) {
+        const features = (expose as {features?: Expose[]}).features;
+        if (features) {
+            return findExposeValueStep(features, property);
+        }
+    }
+    return undefined;
+}
+
+export function getExposeValueStep(definition: Definition | Definition[], device: Zh.Device | undefined, property: string): number | undefined {
+    const steps: number[] = [];
+    for (const item of Array.isArray(definition) ? definition : [definition]) {
+        const exposes = Array.isArray(item.exposes) ? item.exposes : device ? item.exposes(device, {}) : [];
+        const step = findExposeValueStep(exposes, property);
+        if (step !== undefined) {
+            steps.push(step);
+        }
+    }
+    if (steps.length === 0) {
+        return undefined;
+    }
+    if (new Set(steps).size === 1) {
+        return steps[0];
+    }
+    return undefined;
+}
+
 export function getObjectProperty(object: KeyValue, key: string, defaultValue: unknown) {
     return object && object[key] !== undefined ? object[key] : defaultValue;
 }
@@ -522,9 +584,9 @@ export async function getClusterAttributeValue<
     }
 }
 
-export function normalizeCelsiusVersionOfFahrenheit(value: number) {
+export function normalizeCelsiusVersionOfFahrenheit(value: number, fahrenheitStep = 0.5) {
     const fahrenheit = value * 1.8 + 32;
-    const roundedFahrenheit = Number((Math.round(Number((fahrenheit * 2).toFixed(1))) / 2).toFixed(1));
+    const roundedFahrenheit = roundToStep(fahrenheit, fahrenheitStep);
     return Number(((roundedFahrenheit - 32) / 1.8).toFixed(2));
 }
 

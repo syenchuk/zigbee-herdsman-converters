@@ -1845,10 +1845,13 @@ export const thermostat_occupied_heating_setpoint: Tz.Converter = {
     convertSet: async (entity, key, value, meta) => {
         utils.assertNumber(value, key);
         let result: number;
+        const step = utils.getExposeValueStep(meta.mapped, meta.device, "occupied_heating_setpoint");
         if (meta.options.thermostat_unit === "fahrenheit") {
-            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value) * 100);
+            const fahrenheitStep = step !== undefined ? step * 1.8 : undefined;
+            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value, fahrenheitStep) * 100);
         } else {
-            result = Number((Math.round(Number((value * 2).toFixed(1))) / 2).toFixed(1)) * 100;
+            const rounded = step !== undefined ? utils.roundToStep(value, step) : value;
+            result = Math.round(rounded * 100);
         }
         const occupiedHeatingSetpoint = result;
         await entity.write("hvacThermostat", {occupiedHeatingSetpoint});
@@ -1865,10 +1868,13 @@ export const thermostat_unoccupied_heating_setpoint: Tz.Converter = {
         utils.assertNumber(value, key);
         // biome-ignore lint/suspicious/noImplicitAnyLet: ignored using `--suppress`
         let result;
+        const step = utils.getExposeValueStep(meta.mapped, meta.device, "unoccupied_heating_setpoint");
+        const celsiusStep = step ?? 0.5;
         if (meta.options.thermostat_unit === "fahrenheit") {
-            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value) * 100);
+            const fahrenheitStep = step !== undefined ? step * 1.8 : undefined;
+            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value, fahrenheitStep) * 100);
         } else {
-            result = Number((Math.round(Number((value * 2).toFixed(1))) / 2).toFixed(1)) * 100;
+            result = Math.round(utils.roundToStep(value, celsiusStep) * 100);
         }
         const unoccupiedHeatingSetpoint = result;
         await entity.write("hvacThermostat", {unoccupiedHeatingSetpoint});
@@ -1885,10 +1891,13 @@ export const thermostat_occupied_cooling_setpoint: Tz.Converter = {
         utils.assertNumber(value, key);
         // biome-ignore lint/suspicious/noImplicitAnyLet: ignored using `--suppress`
         let result;
+        const step = utils.getExposeValueStep(meta.mapped, meta.device, "occupied_cooling_setpoint");
+        const celsiusStep = step ?? 0.5;
         if (meta.options.thermostat_unit === "fahrenheit") {
-            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value) * 100);
+            const fahrenheitStep = step !== undefined ? step * 1.8 : undefined;
+            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value, fahrenheitStep) * 100);
         } else {
-            result = Number((Math.round(Number((value * 2).toFixed(1))) / 2).toFixed(1)) * 100;
+            result = Math.round(utils.roundToStep(value, celsiusStep) * 100);
         }
         const occupiedCoolingSetpoint = result;
         await entity.write("hvacThermostat", {occupiedCoolingSetpoint});
@@ -1905,10 +1914,13 @@ export const thermostat_unoccupied_cooling_setpoint: Tz.Converter = {
         utils.assertNumber(value, key);
         // biome-ignore lint/suspicious/noImplicitAnyLet: ignored using `--suppress`
         let result;
+        const step = utils.getExposeValueStep(meta.mapped, meta.device, "unoccupied_cooling_setpoint");
+        const celsiusStep = step ?? 0.5;
         if (meta.options.thermostat_unit === "fahrenheit") {
-            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value) * 100);
+            const fahrenheitStep = step !== undefined ? step * 1.8 : undefined;
+            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value, fahrenheitStep) * 100);
         } else {
-            result = Number((Math.round(Number((value * 2).toFixed(1))) / 2).toFixed(1)) * 100;
+            result = Math.round(utils.roundToStep(value, celsiusStep) * 100);
         }
         const unoccupiedCoolingSetpoint = result;
         await entity.write("hvacThermostat", {unoccupiedCoolingSetpoint});
@@ -1944,10 +1956,13 @@ export const thermostat_min_heat_setpoint_limit: Tz.Converter = {
         utils.assertNumber(value);
         // biome-ignore lint/suspicious/noImplicitAnyLet: ignored using `--suppress`
         let result;
+        const step = utils.getExposeValueStep(meta.mapped, meta.device, "min_heat_setpoint_limit");
+        const celsiusStep = step ?? 0.5;
         if (meta.options.thermostat_unit === "fahrenheit") {
-            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value) * 100);
+            const fahrenheitStep = step !== undefined ? step * 1.8 : undefined;
+            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value, fahrenheitStep) * 100);
         } else {
-            result = Number((Math.round(Number((value * 2).toFixed(1))) / 2).toFixed(1)) * 100;
+            result = Math.round(utils.roundToStep(value, celsiusStep) * 100);
         }
         const minHeatSetpointLimit = result;
         await entity.write("hvacThermostat", {minHeatSetpointLimit});
@@ -1963,10 +1978,13 @@ export const thermostat_max_heat_setpoint_limit: Tz.Converter = {
         utils.assertNumber(value, key);
         // biome-ignore lint/suspicious/noImplicitAnyLet: ignored using `--suppress`
         let result;
+        const step = utils.getExposeValueStep(meta.mapped, meta.device, "max_heat_setpoint_limit");
+        const celsiusStep = step ?? 0.5;
         if (meta.options.thermostat_unit === "fahrenheit") {
-            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value) * 100);
+            const fahrenheitStep = step !== undefined ? step * 1.8 : undefined;
+            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value, fahrenheitStep) * 100);
         } else {
-            result = Number((Math.round(Number((value * 2).toFixed(1))) / 2).toFixed(1)) * 100;
+            result = Math.round(utils.roundToStep(value, celsiusStep) * 100);
         }
         const maxHeatSetpointLimit = result;
         await entity.write("hvacThermostat", {maxHeatSetpointLimit});
@@ -1982,10 +2000,13 @@ export const thermostat_min_cool_setpoint_limit: Tz.Converter = {
         utils.assertNumber(value, key);
         // biome-ignore lint/suspicious/noImplicitAnyLet: ignored using `--suppress`
         let result;
+        const step = utils.getExposeValueStep(meta.mapped, meta.device, "min_cool_setpoint_limit");
+        const celsiusStep = step ?? 0.5;
         if (meta.options.thermostat_unit === "fahrenheit") {
-            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value) * 100);
+            const fahrenheitStep = step !== undefined ? step * 1.8 : undefined;
+            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value, fahrenheitStep) * 100);
         } else {
-            result = Number((Math.round(Number((value * 2).toFixed(1))) / 2).toFixed(1)) * 100;
+            result = Math.round(utils.roundToStep(value, celsiusStep) * 100);
         }
         const minCoolSetpointLimit = result;
         await entity.write("hvacThermostat", {minCoolSetpointLimit});
@@ -2001,10 +2022,13 @@ export const thermostat_max_cool_setpoint_limit: Tz.Converter = {
         utils.assertNumber(value, key);
         // biome-ignore lint/suspicious/noImplicitAnyLet: ignored using `--suppress`
         let result;
+        const step = utils.getExposeValueStep(meta.mapped, meta.device, "max_cool_setpoint_limit");
+        const celsiusStep = step ?? 0.5;
         if (meta.options.thermostat_unit === "fahrenheit") {
-            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value) * 100);
+            const fahrenheitStep = step !== undefined ? step * 1.8 : undefined;
+            result = Math.round(utils.normalizeCelsiusVersionOfFahrenheit(value, fahrenheitStep) * 100);
         } else {
-            result = Number((Math.round(Number((value * 2).toFixed(1))) / 2).toFixed(1)) * 100;
+            result = Math.round(utils.roundToStep(value, celsiusStep) * 100);
         }
         const maxCoolSetpointLimit = result;
         await entity.write("hvacThermostat", {maxCoolSetpointLimit});
