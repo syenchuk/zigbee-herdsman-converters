@@ -21,6 +21,8 @@ const manufacturerOptions = {
     hue: {manufacturerCode: Zcl.ManufacturerCode.SIGNIFY_NETHERLANDS_B_V},
     ikea: {manufacturerCode: Zcl.ManufacturerCode.IKEA_OF_SWEDEN},
     sinope: {manufacturerCode: Zcl.ManufacturerCode.SINOPE_TECHNOLOGIES},
+    stello: {manufacturerCode: Zcl.ManufacturerCode.STELPRO},
+    stelpro: {manufacturerCode: Zcl.ManufacturerCode.STELPRO},
     tint: {manufacturerCode: Zcl.ManufacturerCode.MUELLER_LICHT_INTERNATIONAL_INC},
     legrand: {manufacturerCode: Zcl.ManufacturerCode.LEGRAND_GROUP, disableDefaultResponse: true},
     viessmann: {manufacturerCode: Zcl.ManufacturerCode.VIESSMANN_ELEKTRONIK_GMBH},
@@ -585,7 +587,14 @@ export const warning: Tz.Converter = {
         let info;
         // https://github.com/Koenkk/zigbee2mqtt/issues/8310 some devices require the info to be reversed.
         if (Array.isArray(meta.mapped)) throw new Error("Not supported for groups");
-        if (["SIRZB-110", "SIRZB-111", "SRAC-23B-ZBSR", "AV2010/29A", "AV2010/24A"].includes(meta.mapped.model)) {
+        // SIRZB-110/111 require all-zero info byte to reliably stop the siren.
+        if (values.mode === "stop" && ["SIRZB-110", "SIRZB-111"].includes(meta.mapped.model)) {
+            // @ts-expect-error ignore
+            if (value.level == null) values.level = "low";
+            // @ts-expect-error ignore
+            if (value.strobe == null) values.strobe = false;
+        }
+        if (["SIRZB-110", "SRAC-23B-ZBSR", "AV2010/29A", "AV2010/24A"].includes(meta.mapped.model)) {
             info = utils.getFromLookup(values.mode, mode) + ((values.strobe ? 1 : 0) << 4) + (utils.getFromLookup(values.level, level) << 6);
         } else {
             info = (utils.getFromLookup(values.mode, mode) << 4) + ((values.strobe ? 1 : 0) << 2) + utils.getFromLookup(values.level, level);
@@ -620,6 +629,15 @@ export const warning_simple: Tz.Converter = {
         if (Array.isArray(meta.mapped)) throw new Error("Not supported for groups");
         if (["SMSZB-120", "HESZB-120"].includes(meta.mapped.model)) {
             info = (alarmState << 7) + (alarmState << 6);
+        } else if (meta.mapped.model === "SIRZB-110") {
+            // ZCL-compliant layout: bits 0-3=mode, bit 4=strobe, bits 6-7=level
+            // OFF: info=0 (mode=stop, level=low, strobe=off — device requires level=0 to stop)
+            // ON: emergency(3) + strobe(1<<4) + very_high(3<<6) = 211
+            info = alarmState === 0 ? 0 : 3 + (1 << 4) + (3 << 6);
+        } else if (meta.mapped.model === "SIRZB-111") {
+            // Generic layout: bits 4-7=mode, bit 2=strobe, bits 0-1=level
+            // OFF: info=0, ON: (emergency<<4) + (strobe<<2) + very_high = 55
+            info = alarmState === 0 ? 0 : (3 << 4) + (1 << 2) + 3;
         } else {
             info = (3 << 6) + (alarmState << 2);
         }
@@ -3504,13 +3522,34 @@ export const eurotronic_mirror_display: Tz.Converter = {
         await entity.read("hvacThermostat", [0x4008], manufacturerOptions.eurotronic);
     },
 };
+export const stelpro_peak_demand_event_icon: Tz.Converter = {
+    key: ["peak_demand_icon"],
+    convertSet: async (entity, key, value, meta) => {
+        const hours = Number(value);
+        const seconds = hours * 3600;
+        if (seconds < 0 || seconds > 65535) {
+            throw new Error("Peak demand duration must be between 0 and 18 hours");
+        }
+
+        const payload = {
+            16645: {
+                value: seconds,
+                type: Zcl.DataType.UINT16,
+            },
+        };
+
+        await entity.write("hvacThermostat", payload);
+        return {state: {[key]: hours}};
+    },
+};
 export const stelpro_thermostat_outdoor_temperature: Tz.Converter = {
-    key: ["thermostat_outdoor_temperature"],
+    key: ["outdoor_temperature_display"],
     convertSet: async (entity, key, value, meta) => {
         utils.assertNumber(value, key);
-        if (value > -100 && value < 100) {
-            await entity.write("hvacThermostat", {StelproOutdoorTemp: value * 100});
+        if (value < -32 || value > 119) {
+            throw new Error("Outdoor temperature must be between -32 and 119 degrees Celsius");
         }
+        await entity.write("hvacThermostat", {StelproOutdoorTemp: value * 100});
     },
 };
 export const DTB190502A1_LED: Tz.Converter = {
